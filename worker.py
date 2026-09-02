@@ -1,7 +1,7 @@
-from blog_writing_agent.model import State
+from model import State
 from langgraph.types import Send
 from langchain_core.messages import SystemMessage, HumanMessage
-from blog_writing_agent.llm_initialization import llm
+from llm_initialization import llm
 
 
 
@@ -38,4 +38,4 @@ def worker(payload: dict):
         ]
     ).content.strip()
 
-    return {"sections": section_md}
+    return {"sections": [section_md]}

@@ -1,8 +1,8 @@
 from langgraph.graph import StateGraph, START,END
-from blog_writing_agent.model import State
-from blog_writing_agent.orchestrator import orchestrator
-from blog_writing_agent.worker import fanout, worker
-from blog_writing_agent.reducer import reducer
+from model import State
+from orchestrator import orchestrator
+from worker import fanout, worker
+from reducer import reducer
 
 graph = StateGraph(State)
 graph.add_node("orchestrator", orchestrator)

@@ -1,5 +1,5 @@
-from blog_writing_agent.llm_initialization import llm
-from blog_writing_agent.model import Plan, State
+from llm_initialization import llm
+from model import Plan, State
 from langchain_core.messages import SystemMessage, HumanMessage
 
 def orchestrator(state: State) -> Plan:
