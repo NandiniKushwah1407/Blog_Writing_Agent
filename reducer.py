@@ -2,13 +2,14 @@ from pathlib import Path
 from model import State
 
 def reducer(state: State) -> dict:
-   title = state["plan"].blog_title
-   body ="\n\n".join(state["sections"]).strip()
 
-   final_md = f"# {title}\n\n{body}\n"
+    plan = state["plan"]
 
-   filename = title.lower().replace(" ", "_") + ".md"
-   output_path = Path("blogs", filename)
-   output_path.write_text(final_md, encoding="utf-8")
+    ordered_sections = [md for _, md in sorted(state["sections"], key=lambda x: x[0])]
+    body = "\n\n".join(ordered_sections).strip()
+    final_md = f"# {plan.blog_title}\n\n{body}\n"
 
-   return {"final": final_md}
+    filename = f"{plan.blog_title}.md"
+    Path(filename).write_text(final_md, encoding="utf-8")
+
+    return {"final": final_md}
