@@ -1,5 +1,5 @@
 from pathlib import Path
-from model import State
+from backend.model import State
 
 def reducer(state: State) -> dict:
 

@@ -1,8 +1,8 @@
-from model import State
+from backend.model import State
 from langgraph.types import Send
 from langchain_core.messages import SystemMessage, HumanMessage
-from llm_initialization import llm
-from model import Task, Plan, EvidenceItem
+from backend.llm_initialization import llm
+from backend.model import Task, Plan, EvidenceItem
 
 
 

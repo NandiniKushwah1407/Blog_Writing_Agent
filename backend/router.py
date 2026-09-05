@@ -1,6 +1,6 @@
 from langchain_core.messages import SystemMessage, HumanMessage
-from llm_initialization import llm
-from model import State, RouterDecision
+from backend.llm_initialization import llm
+from backend.model import State, RouterDecision
 
 
 ROUTER_SYSTEM = """You are a routing module for a technical blog planner.

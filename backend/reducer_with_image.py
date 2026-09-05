@@ -1,10 +1,11 @@
 from pathlib import Path
-from model import State, GlobalImagePlan
-from llm_initialization import llm
+from backend.model import State, GlobalImagePlan
+from backend.llm_initialization import llm
 from langchain_core.messages import SystemMessage, HumanMessage
 from dotenv import load_dotenv
 from typing import List, Optional
 import re
+import os
 
 
 
@@ -65,7 +66,8 @@ def _gemini_generate_image_bytes(prompt: str) -> bytes:
     from google import genai
     from google.genai import types
 
-    api_key = load_dotenv().get("GOOGLE_API_KEY")
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY is not set.")
 

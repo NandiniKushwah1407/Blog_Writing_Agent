@@ -1,11 +1,11 @@
 from langgraph.graph import StateGraph, START,END
-from model import State
-from orchestrator import orchestrator
-from worker import fanout, worker
-from reducer import reducer
-from router import router, route_next
-from tavily_search import research_node
-from reducer_with_image import merge_content, decide_images, generate_and_place_images
+from backend.model import State
+from backend.orchestrator import orchestrator
+from backend.worker import fanout, worker
+from backend.reducer import reducer
+from backend.router import router, route_next
+from backend.tavily_search import research_node
+from backend.reducer_with_image import merge_content, decide_images, generate_and_place_images
 
 # Subgraph for reducer with image generation
 reducer_graph = StateGraph(State)

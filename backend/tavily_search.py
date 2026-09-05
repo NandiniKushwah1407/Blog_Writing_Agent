@@ -1,11 +1,12 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 from dotenv import load_dotenv
-from model import State, EvidenceItem
+from backend.model import State, EvidenceItem
 from typing import List, Optional
-from llm_initialization import llm
-from model import EvidencePack
+from backend.llm_initialization import llm
+from backend.model import EvidencePack
 from langchain_core.messages import SystemMessage, HumanMessage
 from datetime import date, timedelta
+import os
 
 load_dotenv() # load environment variables from .env file
 # tool = TavilySearchResults(max_results=2)
@@ -15,7 +16,7 @@ load_dotenv() # load environment variables from .env file
 
 
 def _tavily_search(query: str, max_results: int = 5) -> List[dict]:
-    if not load_dotenv().get("TAVILY_API_KEY"):
+    if not os.getenv("TAVILY_API_KEY"):
         return []
     try:
         from langchain_community.tools.tavily_search import TavilySearchResults  # type: ignore
