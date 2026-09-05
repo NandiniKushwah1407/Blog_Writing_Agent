@@ -8,6 +8,7 @@ from model import Task, Plan, EvidenceItem
 
 # intermidieate funtion to send the task to the worker one by one
 def fanout(state: State):
+    assert state["plan"] is not None
     return [
         Send(
             "worker",
@@ -15,6 +16,8 @@ def fanout(state: State):
                 "task": task.model_dump(),
                 "topic": state["topic"],
                 "mode": state["mode"],
+                "as_of": state["as_of"],
+                "recency_days": state["recency_days"],
                 "plan": state["plan"].model_dump(),
                 "evidence": [e.model_dump() for e in state.get("evidence", [])],
             },
@@ -22,53 +25,40 @@ def fanout(state: State):
         for task in state["plan"].tasks
     ]
 
+
+
 WORKER_SYSTEM = """You are a senior technical writer and developer advocate.
 Write ONE section of a technical blog post in Markdown.
 
-Hard constraints:
-- Follow the provided Goal and cover ALL Bullets in order (do not skip or merge bullets).
-- Stay close to Target words (±15%).
-- Output ONLY the section content in Markdown (no blog title H1, no extra commentary).
-- Start with a '## <Section Title>' heading.
+Constraints:
+- Cover ALL bullets in order.
+- Target words ±15%.
+- Output only section markdown starting with "## <Section Title>".
 
 Scope guard:
-- If blog_kind == "news_roundup": do NOT turn this into a tutorial/how-to guide.
-  Do NOT teach web scraping, RSS, automation, or "how to fetch news" unless bullets explicitly ask for it.
-  Focus on summarizing events and implications.
+- If blog_kind=="news_roundup", do NOT drift into tutorials (scraping/RSS/how to fetch).
+  Focus on events + implications.
 
-Grounding policy:
-- If mode == open_book:
-  - Do NOT introduce any specific event/company/model/funding/policy claim unless it is supported by provided Evidence URLs.
-  - For each event claim, attach a source as a Markdown link: ([Source](URL)).
-  - Only use URLs provided in Evidence. If not supported, write: "Not found in provided sources."
-- If requires_citations == true:
-  - For outside-world claims, cite Evidence URLs the same way.
-- Evergreen reasoning is OK without citations unless requires_citations is true.
+Grounding:
+- If mode=="open_book": do not introduce any specific event/company/model/funding/policy claim unless supported by provided Evidence URLs.
+  For each supported claim, attach a Markdown link ([Source](URL)).
+  If unsupported, write "Not found in provided sources."
+- If requires_citations==true (hybrid tasks): cite Evidence URLs for external claims.
 
 Code:
-- If requires_code == true, include at least one minimal, correct code snippet relevant to the bullets.
-
-Style:
-- Short paragraphs, bullets where helpful, code fences for code.
-- Avoid fluff/marketing. Be precise and implementation-oriented.
+- If requires_code==true, include at least one minimal snippet.
 """
 
 def worker(payload: dict) -> dict:
-    
     task = Task(**payload["task"])
     plan = Plan(**payload["plan"])
     evidence = [EvidenceItem(**e) for e in payload.get("evidence", [])]
-    topic = payload["topic"]
-    mode = payload.get("mode", "closed_book")
 
     bullets_text = "\n- " + "\n- ".join(task.bullets)
-
-    evidence_text = ""
-    if evidence:
-        evidence_text = "\n".join(
-            f"- {e.title} | {e.url} | {e.published_at or 'date:unknown'}".strip()
-            for e in evidence[:20]
-        )
+    evidence_text = "\n".join(
+        f"- {e.title} | {e.url} | {e.published_at or 'date:unknown'}"
+        for e in evidence[:20]
+    )
 
     section_md = llm.invoke(
         [
@@ -80,17 +70,18 @@ def worker(payload: dict) -> dict:
                     f"Tone: {plan.tone}\n"
                     f"Blog kind: {plan.blog_kind}\n"
                     f"Constraints: {plan.constraints}\n"
-                    f"Topic: {topic}\n"
-                    f"Mode: {mode}\n\n"
+                    f"Topic: {payload['topic']}\n"
+                    f"Mode: {payload.get('mode')}\n"
+                    f"As-of: {payload.get('as_of')} (recency_days={payload.get('recency_days')})\n\n"
                     f"Section title: {task.title}\n"
                     f"Goal: {task.goal}\n"
                     f"Target words: {task.target_words}\n"
                     f"Tags: {task.tags}\n"
                     f"requires_research: {task.requires_research}\n"
-                    f"requires_citation: {task.requires_citation}\n"
+                    f"requires_citations: {task.requires_citations}\n"
                     f"requires_code: {task.requires_code}\n"
                     f"Bullets:{bullets_text}\n\n"
-                    f"Evidence (ONLY use these URLs when citing):\n{evidence_text}\n"
+                    f"Evidence (ONLY cite these URLs):\n{evidence_text}\n"
                 )
             ),
         ]

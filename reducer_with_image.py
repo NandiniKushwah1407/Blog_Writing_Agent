@@ -3,12 +3,15 @@ from model import State, GlobalImagePlan
 from llm_initialization import llm
 from langchain_core.messages import SystemMessage, HumanMessage
 from dotenv import load_dotenv
+from typing import List, Optional
+import re
+
 
 
 def merge_content(state: State) -> dict:
-
     plan = state["plan"]
-
+    if plan is None:
+        raise ValueError("merge_content called without plan.")
     ordered_sections = [md for _, md in sorted(state["sections"], key=lambda x: x[0])]
     body = "\n\n".join(ordered_sections).strip()
     merged_md = f"# {plan.blog_title}\n\n{body}\n"
@@ -27,9 +30,7 @@ Rules:
 Return strictly GlobalImagePlan.
 """
 
-
 def decide_images(state: State) -> dict:
-    
     planner = llm.with_structured_output(GlobalImagePlan)
     merged_md = state["merged_md"]
     plan = state["plan"]
@@ -64,7 +65,7 @@ def _gemini_generate_image_bytes(prompt: str) -> bytes:
     from google import genai
     from google.genai import types
 
-    api_key = load_dotenv().get("GOOGLE_API_KEY") or None
+    api_key = load_dotenv().get("GOOGLE_API_KEY")
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY is not set.")
 
@@ -103,8 +104,14 @@ def _gemini_generate_image_bytes(prompt: str) -> bytes:
     raise RuntimeError("No inline image bytes found in response.")
 
 
-def generate_and_place_images(state: State) -> dict:
+def _safe_slug(title: str) -> str:
+    s = title.strip().lower()
+    s = re.sub(r"[^a-z0-9 _-]+", "", s)
+    s = re.sub(r"\s+", "_", s).strip("_")
+    return s or "blog"
 
+
+def generate_and_place_images(state: State) -> dict:
     plan = state["plan"]
     assert plan is not None
 
@@ -113,7 +120,7 @@ def generate_and_place_images(state: State) -> dict:
 
     # If no images requested, just write merged markdown
     if not image_specs:
-        filename = f"{plan.blog_title}.md"
+        filename = f"{_safe_slug(plan.blog_title)}.md"
         Path(filename).write_text(md, encoding="utf-8")
         return {"final": md}
 
@@ -144,6 +151,6 @@ def generate_and_place_images(state: State) -> dict:
         img_md = f"![{spec['alt']}](images/{filename})\n*{spec['caption']}*"
         md = md.replace(placeholder, img_md)
 
-    filename = f"{plan.blog_title}.md"
+    filename = f"{_safe_slug(plan.blog_title)}.md"
     Path(filename).write_text(md, encoding="utf-8")
     return {"final": md}
