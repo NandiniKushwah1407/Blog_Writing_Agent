@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Literal, TypedDict, List, Annotated
+from typing import Literal, TypedDict, List, Annotated,Optional
 
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, START,END
@@ -26,12 +26,33 @@ class Task(BaseModel):
         "intro", "core", "examples", "checklist", "common_mistakes", "conclusion"
         ] = Field(...,
                 description="Use 'common_mistakes' exactly once in the plan.")
+    tags: List[str] = Field(default_factory=list)
+    requires_research: bool = False
+    requires_citation: bool = False
+    requires_code: bool = False
 
 class Plan(BaseModel):
     blog_title: str
     audience: str = Field(..., description="Who is the target audience for the blog")
     tone: str = Field(..., description="The tone of the blog (e.g., formal, casual, humorous)")
+    blog_kind: Literal["tutorial", "how-to", "opinion", "case-study", "review"] = "explainer"
+    Constaints: List[str] = Field(default_factory=list)
     tasks: List[Task]
+
+class EvidenceItem(BaseModel):
+    title: str
+    url: str
+    published_at: Optional[str] = None # keep it if tavly provides it, otherwise None
+    snippet: Optional[str] = None
+    source: Optional[str] = None 
+
+class RouterDecision(BaseModel):
+    needs_research: bool
+    mode: Literal["closed_book", "open_book", "hybrid"]
+    queries: List[str] = Field(default_factory=list)
+
+class EvidencePack(BaseModel):
+    evidence: List[EvidenceItem] = Field(default_factory=list)
 
 class State(TypedDict):
     topic: str
